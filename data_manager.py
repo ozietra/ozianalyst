@@ -50,7 +50,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-def fetch_and_store_data(api_key=None, seasons=[2023, 2024, 2025, 2026]):
+def fetch_and_store_data(api_key=None, seasons=[2023, 2024, 2025, 2026], progress_callback=None):
     """API'den geçmiş ve gelecek maçları çeker."""
     init_db()
     conn = get_db_connection()
@@ -65,9 +65,16 @@ def fetch_and_store_data(api_key=None, seasons=[2023, 2024, 2025, 2026]):
     cursor.execute('DELETE FROM scorers')
     conn.commit()
     
+    total_steps = len(LEAGUES) * (1 + len(seasons)) # Gol krallığı + Sezonlar
+    current_step = 0
+    
     for league in LEAGUES:
         # --- GOL KRALLIĞI VERİSİNİ ÇEK ---
-        print(f"Gol Krallığı taranıyor: {league}")
+        msg = f"Taranıyor: {league} (Gol Krallığı)"
+        print(msg)
+        if progress_callback:
+            progress_callback(current_step / total_steps, msg)
+            
         try:
             s_url = f"{BASE_URL}/competitions/{league}/scorers"
             s_res = requests.get(s_url, headers=headers)
@@ -88,9 +95,14 @@ def fetch_and_store_data(api_key=None, seasons=[2023, 2024, 2025, 2026]):
             print(f"Gol Krallığı Hatası ({league}): {e}")
         
         time.sleep(6) # API Limit Koruması
+        current_step += 1
 
         for season in seasons:
-            print(f"Taranıyor: {league} - Sezon: {season}")
+            msg = f"Taranıyor: {league} - Sezon: {season}"
+            print(msg)
+            if progress_callback:
+                progress_callback(current_step / total_steps, msg)
+                
             url = f"{BASE_URL}/competitions/{league}/matches?season={season}"
             
             try:
@@ -130,6 +142,7 @@ def fetch_and_store_data(api_key=None, seasons=[2023, 2024, 2025, 2026]):
 
             # API nezaket kuralı (Dakikada 10 istek sınırı için bekleme)
             time.sleep(7) 
+            current_step += 1
             
     conn.close()
     print("--- Veri Güncelleme Tamamlandı ---")

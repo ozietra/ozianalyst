@@ -152,6 +152,10 @@ def get_points_progression(df, team_name, competition):
         
     return progression
 
+@st.cache_data(ttl=3600, show_spinner="Veriler yükleniyor...")
+def load_data():
+    return get_matches_df()
+
 # --- ANA UYGULAMA ---
 st.title("AI Football Analyst 2026")
 
@@ -161,9 +165,16 @@ with st.sidebar:
     user_api_key = st.text_input("🔑 API Anahtarı (Opsiyonel)", type="password", help="Kendi API anahtarınızı kullanmak isterseniz buraya girin.")
     
     if st.button("Verileri Güncelle (API)"):
-        with st.spinner("Veriler işleniyor... (Bu işlem 1-2 dk sürebilir)"):
-            fetch_and_store_data(api_key=user_api_key if user_api_key else None, seasons=[2023, 2024, 2025, 2026])
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        def update_progress(progress, text):
+            progress_bar.progress(progress)
+            status_text.text(text)
+            
+        fetch_and_store_data(api_key=user_api_key if user_api_key else None, seasons=[2023, 2024, 2025, 2026], progress_callback=update_progress)
         st.success("Güncelleme Tamamlandı!")
+        load_data.clear()
         st.rerun()
         
     st.markdown("---")
@@ -180,7 +191,7 @@ with st.sidebar:
         else:
             st.caption("Şu an takip edilen liglerde canlı maç yok.")
 
-df = get_matches_df()
+df = load_data()
 
 if df.empty:
     st.warning("Veritabanı boş. Lütfen sol menüden 'Verileri Güncelle' butonuna basın.")
@@ -366,6 +377,7 @@ else:
                 ax1.pie([btts_h_yes, btts_h_no], labels=['Var', 'Yok'], autopct='%1.1f%%', colors=['#10b981', '#ef4444'], textprops={'color':"white"})
                 fig1.patch.set_facecolor('#0e1117')
                 st.pyplot(fig1, width='content')
+                plt.close(fig1)
 
         # Away Pie
         with col_pie2:
@@ -375,6 +387,7 @@ else:
                 ax2.pie([btts_a_yes, btts_a_no], labels=['Var', 'Yok'], autopct='%1.1f%%', colors=['#10b981', '#ef4444'], textprops={'color':"white"})
                 fig2.patch.set_facecolor('#0e1117')
                 st.pyplot(fig2, width='content')
+                plt.close(fig2)
 
         st.markdown("---")
 

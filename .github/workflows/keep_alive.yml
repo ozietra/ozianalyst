@@ -1,0 +1,16 @@
+name: Keep App Alive
+
+on:
+  schedule:
+    # Her 30 dakikada bir çalışır
+    - cron: "*/30 * * * *"
+  workflow_dispatch: # Manuel tetikleme için
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        run: |
+          # Aşağıdaki URL'yi kendi Streamlit uygulama adresinizle değiştirin
+          curl -I https://ozianalyst.streamlit.app/
